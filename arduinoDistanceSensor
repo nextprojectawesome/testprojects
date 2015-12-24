@@ -1,0 +1,90 @@
+
+boolean isDebug=true;
+/***INSERT INTO CODE**/
+const int triggerPin = 50; //trigger on 7
+const int echoPin = 42; // ECHO on 8
+
+int maxDistance = 8; // Maximum range needed (8cm)
+int duration = 0; // hold value from pulseIn
+int distance = 0; // hold value for calculated distance
+
+void setup()
+{
+  Serial.begin(9600);
+  notifyComputerOfPumpingAction("GLASSCHECK:READY");
+  /***INSERT INTO CODE**/
+  pinMode(triggerPin, OUTPUT); 
+  digitalWrite(triggerPin, LOW);
+  pinMode(echoPin, INPUT);
+}
+void notifyComputerOfPumpingAction(String strNotification) //SIGNALER BACK TO COMPUTER
+{
+  //Output format   COMMAND\nSTATUS:ACTION\n[STATUS:ACTION\n]STATUS:COMPLETED\n
+  //i.e   RECIPE/STATUS:PUMPING/STATUS:PUMPING/STATUS:COMPLETE
+  Serial.println(strNotification);
+}
+void handleCommand(String incomingCommand)
+{
+  String strCommand="";
+  int startPos=0;
+  int instructionPointer=0;
+  int instructionArray[3];
+  int ingredientCounter=0;
+  int iActualStringLength = incomingCommand.length(); // \n removed by readStringUntil
+  
+  
+  for(int curPos=0;curPos<iActualStringLength;curPos++)
+  {
+    if(incomingCommand[curPos]==':') //command found
+    {
+      strCommand=incomingCommand.substring(startPos,curPos); //start and length
+      //if(isDebug==true) notifyComputerOfPumpingAction(strCommand);
+      startPos = curPos+1; //place after delimeter and start over
+      
+      /***INSERT INTO CODE**/
+      if(strCommand=="GLASSCHECK")
+      {
+        if(testGlassPresence())
+        {
+          notifyComputerOfPumpingAction("GLASSCHECK:TRUE");
+        }
+        else
+        {
+          notifyComputerOfPumpingAction("GLASSCHECK:FALSE");
+        }
+      }
+      else
+      {
+        notifyComputerOfPumpingAction("GLASSCHECK:BADCOMMAND");
+      }
+    }
+  }
+
+}
+boolean testGlassPresence()      /***INSERT INTO CODE**/
+{
+  boolean retVal=false;  
+  digitalWrite(triggerPin, HIGH); // start sending sound wave(s)
+  delayMicroseconds(50); 
+  digitalWrite(triggerPin, LOW); // module stops sending wave(s)
+  duration = pulseIn(echoPin, HIGH); // determine how long the ECHO pin was high for the last complete wave
+  distance = duration/58.8; //cm, speed of sound calc
+
+  if(isDebug==true) Serial.println();
+  if(isDebug==true) Serial.print(distance); // send the current value stored in distance to the serial monitor
+  if(isDebug==true) Serial.println(" cm"); // displays the word "inches" after the distance above
+  //if(isDebug==true) Serial.println(); // creates a blank line on serial monitor for readability
+  if(distance<=maxDistance)
+  {
+    retVal=true;
+  }
+  delay(50);//Force pause
+ return retVal;
+}
+void loop()
+{
+  if(Serial.available())
+  {  
+    handleCommand(Serial.readStringUntil('\n')); //Get Entire Line
+  }
+}
