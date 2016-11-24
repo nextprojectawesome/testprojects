@@ -53,14 +53,14 @@ int LLED[][3] = { {0,1,2},
                   {7,8,-1},
                   {9,10,-1},
                   {11,12,-1}};
-int FLLed[] = {13}; //The LED COMPARTMENT LIGHT UP
+int FLLed[] = {13}; //The LED COMPARTMENT LIGHT UP (Kind of like a tweeter, not really using it right now)
 
 int RLED[][3] = { {0,1,2},
                   {3,4,-1},
                   {5,6,-1},
                   {7,8,-1}};
 
-int FRLed[] = {9}; //The LED COMPARTMENT LIGHT UP
+int FRLed[] = {9}; //The LED COMPARTMENT LIGHT UP(Kind of like a tweeter, not really using it right now)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //COLOR MEMORY
@@ -159,7 +159,11 @@ void lightCenter(int rCol, int gCol, int bCol)
     ledsR[FRLed[0]].g=gCol;
     ledsR[FRLed[0]].b=bCol;
 }
-
+void clearBlinkers()//generic color function meant to be inline before .show() cmd
+{
+  ledsL[FLLed[0]]=CRGB::Black; 
+  ledsR[FRLed[0]]=CRGB::Black;  
+}
 void sampleSound()
 {
     digitalWrite(DATA_LPIN_RESET, HIGH);          // reset the MSGEQ7's counter
@@ -443,6 +447,7 @@ void loop() {
   }
   else
   {
+    clearBlinkers();
     if (schemebuttonState == HIGH && schemeLock==0) //force user to release before letting next sceme to be selected
     { 
         schemeLock=1;
