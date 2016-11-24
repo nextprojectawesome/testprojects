@@ -201,7 +201,6 @@ void lightBoard()
   {  
     ledsR[x]=CRGB::White ; 
   }
-  delay(250);
 }
 void displaySound()
 {
@@ -230,7 +229,7 @@ void displaySound()
           lightPad("RIGHT", x,144,0,165);
         }  
       }
-      delay(250);     
+   
     }
      
     else if(display_scheme==1) //each pad based on frequency
@@ -249,7 +248,7 @@ void displaySound()
         {
           lightPad("RIGHT", x,RIGHT_CHANNEL[x]);
         }
-        delay(sampleDelay);
+
     }
     
     else if(display_scheme==2) //Flow frontleft to frontright(follow U shape using max left/right as basis)
@@ -285,7 +284,7 @@ void displaySound()
         //set new value
         RIGHT_PAD_BUFFER[0]=tmpBuffer;
         lightPad("RIGHT", 0,RIGHT_PAD_BUFFER[0]);
-         delay(sampleDelaySnake);
+         //delay(sampleDelaySnake);
     }
     else if(display_scheme==3) //same color selection as front left to front right, except light whole board
     {
@@ -311,13 +310,14 @@ void displaySound()
             RIGHT_PAD_BUFFER[x]=maxVal;
             lightPad("RIGHT", x,maxVal);
         }
-         delay(sampleDelaySnake);
+         //delay(sampleDelaySnake);
     }
    /*else if(display_scheme==4) //Pair pads and use max of each frequencies, grouping the last 4 into pairs of 2
     {
        //Clear blinkers
        ledsL[NUM_LEDS_LEFT].setHSV(0,0,0);
        ledsR[NUM_LEDS_RIGHT].setHSV(0,0,0);
+
        int maxVal=0;
        int calcVal1=0;
        int calcVal2=0;
@@ -352,13 +352,15 @@ void displaySound()
           }
           
         }
-        delay(sampleDelay);
+
+       // delay(sampleDelay);
     }
     else if(display_scheme==4) //Flow colors from back (two seperate Ls based on left/right channels)
     {
        //Clear blinkers
        ledsL[NUM_LEDS_LEFT].setHSV(0,0,0);
        ledsR[NUM_LEDS_RIGHT].setHSV(0,0,0);
+
         //Light LEFT pads 
         for(int x=NUM_PADS_LEFT-1; x>0;x--) 
         { 
@@ -371,6 +373,7 @@ void displaySound()
         //set new value
         LEFT_PAD_BUFFER[0]=LEFT_CHANNEL[0];
         lightPad("LEFT", 0,LEFT_PAD_BUFFER[0]);
+
         //Light RIGHT pads
         for(int x=NUM_PADS_RIGHT-1; x>0;x--) 
         { 
@@ -384,16 +387,18 @@ void displaySound()
         RIGHT_PAD_BUFFER[0]=RIGHT_CHANNEL[0];
         lightPad("RIGHT", 0,RIGHT_PAD_BUFFER[0]);
         
-        delay(sampleDelaySnake);
+        //delay(sampleDelaySnake);
     }
     else if(display_scheme==5) //Flow colors from front (two seperate Ls based on left/right channels)
     {
        //Clear blinkers
        ledsL[NUM_LEDS_LEFT].setHSV(0,0,0);
        ledsR[NUM_LEDS_RIGHT].setHSV(0,0,0);
+
         //Light LEFT pads 
         for(int x=0; x<=NUM_PADS_LEFT-2;x++) 
         { 
+
           if(LEFT_PAD_BUFFER[x+1]>=0)  //if color exists in previous buffer, copy it and display it
           {
             LEFT_PAD_BUFFER[x]=LEFT_PAD_BUFFER[x+1];
@@ -403,9 +408,11 @@ void displaySound()
         //set new value
         LEFT_PAD_BUFFER[NUM_PADS_LEFT-1]=LEFT_CHANNEL[0];
         lightPad("LEFT", NUM_PADS_LEFT-1,LEFT_PAD_BUFFER[NUM_PADS_LEFT-1]);
+
         //Light RIGHT pads 
         for(int x=0; x<=NUM_PADS_RIGHT-2;x++) 
         { 
+
           if(RIGHT_PAD_BUFFER[x+1]>=0)  //if color exists in previous buffer, copy it and display it
           {
             RIGHT_PAD_BUFFER[x]=RIGHT_PAD_BUFFER[x+1];
@@ -416,7 +423,7 @@ void displaySound()
         RIGHT_PAD_BUFFER[NUM_PADS_RIGHT-1]=RIGHT_CHANNEL[0];
         lightPad("RIGHT", NUM_PADS_RIGHT-1,RIGHT_PAD_BUFFER[NUM_PADS_RIGHT-1]);
         
-        delay(sampleDelaySnake);
+        //delay(sampleDelaySnake);
     }
       */ 
 
@@ -431,6 +438,8 @@ void loop() {
   { 
       defaultColor=0;
       lightBoard();
+      FastLED.show();
+      delay(500);//half second hold white
   }
   else
   {
@@ -446,14 +455,28 @@ void loop() {
     
     if(display_scheme==0) //static color, no need to sample
     {
-      displaySound();
+      if(defaultColor==0)
+      {
+        displaySound();
+         FastLED.show();
+         delay(250); //quarter second to latch and check again
+      }
     }
     else // sample and display
     {
       sampleSound();
       displaySound();
-      
+       FastLED.show();
+       if(display_scheme==1)
+       {
+            delay(sampleDelay);
+        }
+       else if(display_scheme>1)
+       {
+          delay(sampleDelaySnake);
+       }
     }
+   
   }
-  FastLED.show(); 
+   
 }
