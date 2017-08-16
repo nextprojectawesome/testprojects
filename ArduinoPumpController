@@ -1,0 +1,242 @@
+/***********************************************************************************
+ *  External Resources
+ *Copyright (c) 2015,Shawn Miller
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***********************************************************************************/
+//define the input/output pins
+//pump/relay pins
+#define PUMP_0_PIN 14
+#define PUMP_1_PIN 15
+#define PUMP_2_PIN 16
+
+#define PUMP_3_PIN 17
+#define PUMP_4_PIN 18
+#define PUMP_5_PIN 19
+
+#define PUMP_6_PIN 2
+#define PUMP_7_PIN 4
+#define PUMP_8_PIN 7
+
+#define PUMP_9_PIN 8
+#define PUMP_10_PIN 3
+#define PUMP_11_PIN 5
+
+//pushbutton pins
+#define BUTTON_1_PIN 9
+//#define BUTTON_2_PIN 10
+//#define BUTTON_3_PIN 11
+
+//Time for pumping stations to turn on in milliseconds
+//#define PUMP_Size_Shot 4000
+//#define PUMP_Size_ShotDouble 6000
+//#define PUMP_Size_Tumbler 22500
+
+boolean isDebug=false;
+//setup() runs once
+void setup()
+{
+  //setup output pins for relays/pumping stations
+  pinMode(PUMP_0_PIN, OUTPUT);
+  pinMode(PUMP_1_PIN, OUTPUT);
+  pinMode(PUMP_2_PIN, OUTPUT);
+
+  pinMode(PUMP_3_PIN, OUTPUT);
+  pinMode(PUMP_4_PIN, OUTPUT);
+  pinMode(PUMP_5_PIN, OUTPUT);
+
+  pinMode(PUMP_6_PIN, OUTPUT);
+  pinMode(PUMP_7_PIN, OUTPUT);
+  pinMode(PUMP_8_PIN, OUTPUT);
+  pinMode(PUMP_9_PIN, OUTPUT);
+  
+  pinMode(PUMP_10_PIN, OUTPUT);
+  pinMode(PUMP_11_PIN, OUTPUT);  
+  
+  
+  //setup input pins for buttons
+  pinMode(BUTTON_1_PIN, INPUT);
+  //pinMode(BUTTON_2_PIN, INPUT);  
+  //pinMode(BUTTON_3_PIN, INPUT);
+  
+  //Get commands from Pi
+  Serial.begin(9600);
+}
+int getPumpPin(int iPump)
+{
+  int retval=0; //Yes, I know a switch would have been better... 
+  if(iPump==0)
+  {
+    retval=PUMP_0_PIN;
+  }
+  else if(iPump==1)
+  {
+    retval=PUMP_1_PIN;
+  }
+  else if(iPump==2)
+  {
+    retval=PUMP_2_PIN;
+  }
+  else if(iPump==3)
+  {
+    retval=PUMP_3_PIN;
+  }
+  else if(iPump==4)
+  {
+    retval=PUMP_4_PIN;
+  }
+  else if(iPump==5)
+  {
+    retval=PUMP_5_PIN;
+  }
+  else if(iPump==6)
+  {
+    retval=PUMP_6_PIN;
+  }
+  else if(iPump==7)
+  {
+    retval=PUMP_7_PIN;
+  }
+  else if(iPump==8)
+  {
+    retval=PUMP_8_PIN;
+  }
+  else if(iPump==9)
+  {
+    retval=PUMP_9_PIN;
+  }
+  else if(iPump==10)
+  {
+    retval=PUMP_10_PIN;
+  }
+  else if(iPump==11)
+  {
+    retval=PUMP_11_PIN;
+  }
+  return retval;
+}
+int CalculateTime(int drinkContainerSize, int qty)
+{
+  //1oz = 3*1000
+  //5 * 1000= 1 shot
+  //6*1000 = doubleshot
+  //9*2500 = tumbler
+  int retVal= (double)((double)qty/100) * drinkContainerSize;
+  if(retVal<=0)
+  {//safety measure//should never happen, but will backstop anyways
+    retVal=100;
+  }
+  return retVal; //Do this for now
+}
+
+void purgeLines()
+{
+  for(int i=0;i<12;i++)
+  {
+    pumpIngredient(getPumpPin(i),100,6000);
+  }
+}
+void pumpIngredient(int iPump, int qty,int drinkContainerSize)
+{
+  if(isDebug==true)
+  {
+    //notifyComputerOfPumpingAction('ipump/qty/container/servetime');
+    notifyComputerOfPumpingAction("Pump " + String(iPump));
+    notifyComputerOfPumpingAction("QTY " + String(qty));
+    notifyComputerOfPumpingAction("Container " + String(drinkContainerSize));
+    notifyComputerOfPumpingAction("Pump Time " + String(CalculateTime(drinkContainerSize,qty)));
+  }
+  digitalWrite(iPump, HIGH);
+  //notifyComputerOfPumpingAction("Pump " + String(iPump) + " Signaled");
+  delay(CalculateTime(drinkContainerSize,qty));
+  digitalWrite(iPump, LOW); 
+}
+void notifyComputerOfPumpingAction(String strNotification) //SIGNALER BACK TO COMPUTER
+{
+  //Output format   COMMAND\nSTATUS:ACTION\n[STATUS:ACTION\n]STATUS:COMPLETED\n
+  //i.e   RECIPE/STATUS:PUMPING/STATUS:PUMPING/STATUS:COMPLETE
+  Serial.println(strNotification);
+}
+
+void handleIncomingRecipe(String incomingRecipe)
+{
+    //Recipe is in format   RECIPE:pump|qtyPercentage|glasssizeqty+pump|qtyPercentage|glasssizeqty+\n
+    //EXAMPLE: RECIPE:1|30|4000+2|50|4000+3|20|4000+\n
+    //pump 0-4   RECIPE:0|20|4000+1|20|4000+2|20|4000+3|20|4000+4|20|4000+\n
+    //pump 5-9   RECIPE:5|20|4000+6|20|4000+7|20|4000+8|20|4000+9|20|4000+\n
+    //pump 10-11   RECIPE:10|20|4000+11|20|4000+\n
+    //All pumps   RECIPE:0|20|4000+1|30|4000+2|50|4000+3|20|4000+4|20|4000+5|20|4000+6|20|4000+7|20|4000+8|20|4000+9|20|4000+10|20|4000+11|20|4000+\n
+  String strCommand="";
+  int startPos=0;
+  int instructionPointer=0;
+  int instructionArray[3];
+  int ingredientCounter=0;
+  int iActualStringLength = incomingRecipe.length(); // \n removed by readStringUntil
+  
+  if(isDebug==true)
+  {
+    //notifyComputerOfPumpingAction("String Length");
+    //notifyComputerOfPumpingAction(String(iActualStringLength));
+  }
+  
+  for(int curPos=0;curPos<iActualStringLength;curPos++)
+  {
+    if(incomingRecipe[curPos]==':') //command found
+    {
+      strCommand=incomingRecipe.substring(startPos,curPos); //start and length
+      notifyComputerOfPumpingAction(strCommand);
+      startPos = curPos+1; //place after delimeter and start over
+    }
+    else if(strCommand=="RECIPE" && incomingRecipe[curPos]=='|')
+    {
+      String tmpStr = incomingRecipe.substring(startPos,curPos); //substring is exclusive start, endpos(not includes this character)
+      int tmpVal= tmpStr.toInt();
+      instructionArray[instructionPointer]=tmpVal;
+      instructionPointer++;
+      startPos = curPos+1; //place after delimeter and start over
+    }
+    else if(strCommand=="RECIPE" && incomingRecipe[curPos]=='+') //end current pump instruction
+    {
+      String tmpStr = incomingRecipe.substring(startPos,curPos);
+      int tmpVal= tmpStr.toInt();
+      instructionArray[instructionPointer]=tmpVal; 
+      pumpIngredient(getPumpPin(instructionArray[0]),instructionArray[1],instructionArray[2]);//container/pump/qty
+      instructionPointer=0; //reset instruction pointer for next instruction set
+      ingredientCounter++; //ingredient found
+      notifyComputerOfPumpingAction("STATUS:PUMPING");
+      startPos = curPos+1; //place after delimeter and start over
+    }
+  }
+  
+  notifyComputerOfPumpingAction("STATUS:COMPLETE");
+}
+//loop() runs indefinitely
+void loop()
+{
+  if(digitalRead(BUTTON_1_PIN) == HIGH)
+  {
+    purgeLines(); //Should comment this out and use lines for something else
+    //Serial Tester
+    //handleIncomingRecipe("RECIPE:1|30|4000+2|50|4000+3|20|4000+\n");  //Recipe is in format   RECIPE:pump|qtyPercentage|glasssizeqty+pump|qtyPercentage|glasssizeqty+\n
+  }
+  /*
+  else if(digitalRead(BUTTON_2_PIN) == HIGH)
+  {
+    //Serial Tester
+    handleIncomingRecipe("RECIPE:1|30|4000+2|50|4000+3|20|4000+\n");  //Recipe is in format   RECIPE:pump|qtyPercentage|glasssizeqty+pump|qtyPercentage|glasssizeqty+\n
+  }
+  else if(digitalRead(BUTTON_3_PIN) == HIGH)
+  {
+     //Serial Tester
+     handleIncomingRecipe("RECIPE:1|30|4000+2|50|4000+3|20|4000+\n");  //Recipe is in format   RECIPE:pump|qtyPercentage|glasssizeqty+pump|qtyPercentage|glasssizeqty+\n
+  }
+  */
+  if(Serial.available())
+  {  
+    handleIncomingRecipe(Serial.readStringUntil('\n')); //Get Entire Line
+  }
+}
